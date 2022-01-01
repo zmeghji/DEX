@@ -43,10 +43,21 @@ contract Wallet is Ownable {
         balances[msg.sender][bytes32("ETH")] = balances[msg.sender][bytes32("ETH")].sub(amount);
         msg.sender.call{value:amount}("");
     }
-    
+
     modifier tokenExist(bytes32 ticker) {
         require(tokens[ticker].tokenAddress != address(0), 
             'this token does not exist');
         _;
+    }
+
+    function getBalance(address trader, bytes32 ticker ) internal returns (uint) {
+        return balances[trader][ticker];
+    }
+
+    function addToBalance(address trader, bytes32 ticker , uint amount) internal  {
+        balances[trader][ticker] = balances[trader][ticker].add(amount);
+    }
+    function subtractFromBalance(address trader, bytes32 ticker , uint amount) internal  {
+        balances[trader][ticker] = balances[trader][ticker].sub(amount);
     }
 }

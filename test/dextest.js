@@ -2,7 +2,7 @@ const Dex = artifacts.require("Dex")
 const Link = artifacts.require("Link")
 const truffleAssert = require('truffle-assertions');
 
-contract("Market Order Tests", accounts => {
+contract.skip("Dex (Limit Order Tests)", accounts => {
     it("Should throw an error when attempting to put in a buy limit order without sufficient ether",
         async () =>{
             let dex = await Dex.deployed()

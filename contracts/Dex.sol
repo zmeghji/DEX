@@ -18,6 +18,7 @@ contract Dex is Wallet {
         bytes32 ticker;
         uint amount;
         uint price;
+        uint filled;
     }
 
     mapping(bytes32 => mapping(uint => Order[])) public orderBook;
@@ -37,7 +38,7 @@ contract Dex is Wallet {
         }
 
         Order[] storage orders = orderBook[ticker][uint(side)];
-        orders.push(Order(nextOrderId, msg.sender, side, ticker, amount, price));
+        orders.push(Order(nextOrderId, msg.sender, side, ticker, amount, price,0));
         Order storage newOrder = orders[orders.length - 1];
 
         uint i = orders.length > 0 ? orders.length - 1 : 0;
@@ -67,5 +68,80 @@ contract Dex is Wallet {
         nextOrderId++;
 
     }
+
+    function createMarketOrder(Side side, bytes32 ticker, uint amount) public{
+        if(side == Side.SELL){
+            require(balances[msg.sender][ticker] >= amount, "Insuffient balance");
+        }
+        
+        // uint orderBookSide;
+        // if(side == Side.BUY){
+        //     orderBookSide = 1;
+        // }
+        // else{
+        //     orderBookSide = 0;
+        // }
+        Order[] storage orders = orderBook[ticker][side == Side.BUY? 1: 0];
+
+        uint totalFilled = 0;
+
+        // uint totalLeftToFill = amount;
+        uint ordersFilled = 0;
+        for (uint256 i = 0; i < orders.length && totalFilled < amount; i++) {
+            Order storage order= orders[i];
+            uint leftToFillForI = order.amount - order.filled;
+            uint leftToFillForMarketOrder = amount - totalFilled;
+            uint amountToFillForI;
+            if ( leftToFillForMarketOrder >= leftToFillForI){
+                amountToFillForI = leftToFillForI;
+                ordersFilled++;
+            }
+            else{
+                amountToFillForI = leftToFillForMarketOrder;
+            }
+            order.filled = order.filled.add(amountToFillForI);
+            totalFilled = totalFilled.add(amountToFillForI);
+            
+
+            address buyer;
+            address seller;
+            if (side ==Side.BUY) {
+                buyer = msg.sender;
+                seller = order.trader;
+            }
+            else{
+                buyer = order.trader;
+                seller = msg.sender;
+            }
+
+            // verify that buyer has enough eth
+            require (balances[buyer][bytes32("ETH")]>=  amountToFillForI);
+            //transfer eth between buyer and seller
+            uint ethTransfer= amountToFillForI.mul(order.price);
+            
+            addToBalance(seller, bytes32("ETH"), ethTransfer);
+            subtractFromBalance(buyer, bytes32("ETH"), ethTransfer);
+            // balances[buyer][bytes32("ETH")] = balances[buyer][bytes32("ETH")].sub(ethTransfer);
+            // balances[seller][bytes32("ETH")] = balances[seller][bytes32("ETH")].add(ethTransfer);
+
+            //transfer tokens between buyer and seller
+            addToBalance(buyer, ticker, amountToFillForI);
+            subtractFromBalance(seller, ticker, amountToFillForI);
+
+        }
+
+        for(uint j = 0; j< orders.length-ordersFilled; j++ ){
+            orders[j] = orders[j+ordersFilled];
+        }
+        for (uint k = 0; k < ordersFilled; k++){
+            orders.pop();
+        }
+
+        
+    }
+
+    // function(address buyer, address seller, uint amount, uint price){
+
+    // }
 
 }
