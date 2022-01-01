@@ -14,7 +14,7 @@ contract Wallet is Ownable {
 
     mapping(bytes32 => Token) public tokens;
     bytes32[] public tokenList;
-    mapping(address => mapping(bytes32 => uint256)) public traderBalances;
+    mapping(address => mapping(bytes32 => uint256)) public balances;
 
     function addToken(bytes32 ticker,address tokenAddress) onlyOwner external {
         tokens[ticker] = Token(ticker, tokenAddress);
@@ -23,17 +23,27 @@ contract Wallet is Ownable {
 
     function deposit(uint amount,  bytes32 ticker) tokenExist(ticker) external {
 
-        traderBalances[msg.sender][ticker] = traderBalances[msg.sender][ticker].add(amount);
+        balances[msg.sender][ticker] = balances[msg.sender][ticker].add(amount);
         
         IERC20(tokens[ticker].tokenAddress).transferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint amount, bytes32 ticker) tokenExist(ticker) external {
-        require(traderBalances[msg.sender][ticker] >= amount,'balance too low');
-        traderBalances[msg.sender][ticker] = traderBalances[msg.sender][ticker].sub(amount);
+        require(balances[msg.sender][ticker] >= amount,'balance too low');
+        balances[msg.sender][ticker] = balances[msg.sender][ticker].sub(amount);
         IERC20(tokens[ticker].tokenAddress).transfer(msg.sender, amount);
     }
-
+    
+    function depositEth() payable external {
+        balances[msg.sender][bytes32("ETH")] = balances[msg.sender][bytes32("ETH")].add(msg.value);
+    }
+    
+    function withdrawEth(uint amount) external {
+        require(balances[msg.sender][bytes32("ETH")] >= amount,'Insuffient balance'); 
+        balances[msg.sender][bytes32("ETH")] = balances[msg.sender][bytes32("ETH")].sub(amount);
+        msg.sender.call{value:amount}("");
+    }
+    
     modifier tokenExist(bytes32 ticker) {
         require(tokens[ticker].tokenAddress != address(0), 
             'this token does not exist');
