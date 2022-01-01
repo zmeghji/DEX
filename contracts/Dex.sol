@@ -74,13 +74,7 @@ contract Dex is Wallet {
             require(balances[msg.sender][ticker] >= amount, "Insuffient balance");
         }
         
-        // uint orderBookSide;
-        // if(side == Side.BUY){
-        //     orderBookSide = 1;
-        // }
-        // else{
-        //     orderBookSide = 0;
-        // }
+        
         Order[] storage orders = orderBook[ticker][side == Side.BUY? 1: 0];
 
         uint totalFilled = 0;
@@ -89,8 +83,8 @@ contract Dex is Wallet {
         uint ordersFilled = 0;
         for (uint256 i = 0; i < orders.length && totalFilled < amount; i++) {
             Order storage order= orders[i];
-            uint leftToFillForI = order.amount - order.filled;
-            uint leftToFillForMarketOrder = amount - totalFilled;
+            uint leftToFillForI = order.amount.sub(order.filled);
+            uint leftToFillForMarketOrder = amount.sub(totalFilled);
             uint amountToFillForI;
             if ( leftToFillForMarketOrder >= leftToFillForI){
                 amountToFillForI = leftToFillForI;
@@ -121,8 +115,7 @@ contract Dex is Wallet {
             
             addToBalance(seller, bytes32("ETH"), ethTransfer);
             subtractFromBalance(buyer, bytes32("ETH"), ethTransfer);
-            // balances[buyer][bytes32("ETH")] = balances[buyer][bytes32("ETH")].sub(ethTransfer);
-            // balances[seller][bytes32("ETH")] = balances[seller][bytes32("ETH")].add(ethTransfer);
+            
 
             //transfer tokens between buyer and seller
             addToBalance(buyer, ticker, amountToFillForI);
